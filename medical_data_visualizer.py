@@ -1,14 +1,7 @@
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import numpy as np
-
-# Import data
-df = pd.read_csv("medical_examination.csv")
-
-# Add 'overweight' column
-bmi = df["weight"] / ((df["height"] / 100) ** 2)
-df["overweight"] = (bmi > 25).astype(int)
+# Add overweight column
+df["overweight"] = (
+    df["weight"] / ((df["height"] / 100) ** 2) > 25
+).astype(int)
 
 # Normalize cholesterol and gluc
 df["cholesterol"] = (df["cholesterol"] > 1).astype(int)
@@ -20,7 +13,14 @@ def draw_cat_plot():
     df_cat = pd.melt(
         df,
         id_vars=["cardio"],
-        value_vars=["cholesterol", "gluc", "smoke", "alco", "active", "overweight"]
+        value_vars=[
+            "active",
+            "alco",
+            "cholesterol",
+            "gluc",
+            "overweight",
+            "smoke",
+        ],
     )
 
     # Group and reformat data
@@ -30,35 +30,40 @@ def draw_cat_plot():
         .reset_index(name="total")
     )
 
-    # Draw catplot
-    fig = sns.catplot(
+    # Draw cat plot
+    cat_plot = sns.catplot(
         data=df_cat,
         x="variable",
         y="total",
         hue="value",
         col="cardio",
-        kind="bar"
-    ).fig
+        kind="bar",
+        height=5,
+        aspect=1
+    )
+
+    fig = cat_plot.fig
 
     # Save image
     fig.savefig("catplot.png")
+
     return fig
 
 
 def draw_heat_map():
     # Clean the data
     df_heat = df[
-        (df["ap_lo"] <= df["ap_hi"]) &
-        (df["height"] >= df["height"].quantile(0.025)) &
-        (df["height"] <= df["height"].quantile(0.975)) &
-        (df["weight"] >= df["weight"].quantile(0.025)) &
-        (df["weight"] <= df["weight"].quantile(0.975))
+        (df["ap_lo"] <= df["ap_hi"])
+        & (df["height"] >= df["height"].quantile(0.025))
+        & (df["height"] <= df["height"].quantile(0.975))
+        & (df["weight"] >= df["weight"].quantile(0.025))
+        & (df["weight"] <= df["weight"].quantile(0.975))
     ]
 
-    # Correlation matrix
+    # Calculate correlation matrix
     corr = df_heat.corr()
 
-    # Mask for upper triangle
+    # Generate mask for upper triangle
     mask = np.triu(np.ones_like(corr, dtype=bool))
 
     # Set up figure
@@ -74,9 +79,10 @@ def draw_heat_map():
         square=True,
         linewidths=0.5,
         cbar_kws={"shrink": 0.5},
-        ax=ax
+        ax=ax,
     )
 
     # Save image
     fig.savefig("heatmap.png")
+
     return fig
